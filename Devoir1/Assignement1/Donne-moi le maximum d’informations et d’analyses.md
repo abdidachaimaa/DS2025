@@ -1,6 +1,3 @@
-<img src="https://r2cdn.perplexity.ai/pplx-full-logo-primary-dark%402x.png" style="height:64px;margin-right:32px"/>
-
-# Donne-moi le maximum d’informations et d’analyses possibles sur la base de données « Predict Students’ Dropout and Academic Success » (UCI ML Repo ID 697) via le package ucimlrepo.
 
 python
 from ucimlrepo import fetch_ucirepo
