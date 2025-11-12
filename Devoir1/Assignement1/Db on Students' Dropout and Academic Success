@@ -1,3 +1,7 @@
+<img src="https://r2cdn.perplexity.ai/pplx-full-logo-primary-dark%402x.png" style="height:64px;margin-right:32px"/>
+
+# Donne-moi le maximum d’informations et d’analyses possibles sur la base de données « Predict Students’ Dropout and Academic Success » (UCI ML Repo ID 697) via le package ucimlrepo.
+
 python
 from ucimlrepo import fetch_ucirepo
 
@@ -166,4 +170,6 @@ Ce jeu de données est donc idéal pour explorer les causes du décrochage et op
 [^14]: https://www.semanticscholar.org/paper/Predicting-Student-Dropout-and-Academic-Success-Realinho-Machado/48d44a3d027718512c82634f634044297528f159
 
 [^15]: https://zenodo.org/records/5777340
+
+
 
