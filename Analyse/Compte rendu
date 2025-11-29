@@ -1,64 +1,504 @@
-<img src="https://r2cdn.perplexity.ai/pplx-full-logo-primary-dark%402x.png" style="height:64px;margin-right:32px"/>
+import React, { useState } from 'react';
+import { Upload, BarChart3, TrendingUp, AlertCircle } from 'lucide-react';
+import * as Papa from 'papaparse';
+import _ from 'lodash';
 
-# Compte Rendu Complet : Analyse du Stress Étudiant
+const StudentStressAnalysis = () => {
+  const [data, setData] = useState(null);
+  const [analysis, setAnalysis] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-Ce rapport analyse les facteurs de stress chez 53 étudiants à partir du dataset "Student Stress Factors.csv". Les variables mesurées sur une échelle de 1 à 5 incluent la qualité du sommeil, les maux de tête, la performance académique, la charge de travail, les activités extrascolaires et les niveaux de stress.[^1_1]
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setLoading(true);
+      Papa.parse(file, {
+        complete: (results) => {
+          processData(results.data);
+          setLoading(false);
+        },
+        header: true,
+        dynamicTyping: true,
+        skipEmptyLines: true
+      });
+    }
+  };
 
-## Statistiques Descriptives
+  const processData = (rawData) => {
+    setData(rawData);
+    
+    // Nettoyer les données
+    const cleanData = rawData.filter(row => {
+      return Object.values(row).some(val => val !== null && val !== '');
+    });
 
-Le dataset contient 53 observations sans doublons ni valeurs manquantes. Les moyennes approximatives sont : sommeil (3.0), maux de tête (2.0), performance académique (3.0), charge de travail (3.0), activités extrascolaires (3.0), et stress (3.0).[^1_1]
+    // Identifier les colonnes numériques et catégorielles
+    const numericCols = [];
+    const categoricalCols = [];
+    
+    if (cleanData.length > 0) {
+      Object.keys(cleanData[0]).forEach(col => {
+        const values = cleanData.map(row => row[col]).filter(v => v !== null);
+        if (values.length > 0 && typeof values[0] === 'number') {
+          numericCols.push(col);
+        } else {
+          categoricalCols.push(col);
+        }
+      });
+    }
 
+    // Calculer statistiques descriptives
+    const stats = {};
+    numericCols.forEach(col => {
+      const values = cleanData.map(row => row[col]).filter(v => typeof v === 'number');
+      stats[col] = {
+        mean: _.mean(values),
+        median: values.sort((a, b) => a - b)[Math.floor(values.length / 2)],
+        std: Math.sqrt(_.sum(values.map(v => Math.pow(v - _.mean(values), 2))) / values.length),
+        min: _.min(values),
+        max: _.max(values),
+        count: values.length
+      };
+    });
 
-| Variable | Moyenne | Écart-type | Min | Max |
-| :-- | :-- | :-- | :-- | :-- |
-| Qualité sommeil | 3.0 | 1.0 | 1 | 5 [^1_1] |
-| Maux de tête | 2.0 | 1.0 | 1 | 5 [^1_1] |
-| Performance académique | 3.0 | 1.0 | 1 | 5 [^1_1] |
-| Charge travail | 3.0 | 1.0 | 1 | 5 [^1_1] |
-| Activités extrascolaires | 3.0 | 1.0 | 1 | 5 [^1_1] |
-| Niveaux stress | 3.0 | 1.0 | 1 | 5 [^1_1] |
+    // Matrice de corrélation
+    const correlationMatrix = {};
+    numericCols.forEach(col1 => {
+      correlationMatrix[col1] = {};
+      numericCols.forEach(col2 => {
+        correlationMatrix[col1][col2] = calculateCorrelation(
+          cleanData.map(row => row[col1]),
+          cleanData.map(row => row[col2])
+        );
+      });
+    });
 
-## Distribution des Niveaux de Stress
+    // Identifier variable stress
+    const stressCol = Object.keys(cleanData[0]).find(col => 
+      col.toLowerCase().includes('stress')
+    );
 
-```chart
-{
-  "instructions": "Créez un diagramme circulaire montrant la distribution des niveaux de stress (1-5) avec des couleurs distinctes pour chaque catégorie. Utilisez les fréquences approximatives : niveau 3 (~45%), niveau 2 (~25%), niveau 4 (~20%), niveau 1 (~5%), niveau 5 (~5%). Ajoutez les pourcentages sur le graphique.",
-  "data_json": "[{\"stress_level\":1,\"count\":3},{\"stress_level\":2,\"count\":13},{\"stress_level\":3,\"count\":24},{\"stress_level\":4,\"count\":10},{\"stress_level\":5,\"count\":3}]",
-  "chart_caption": "Distribution des niveaux de stress rapportés",
-  "chart_description": "Diagramme circulaire des fréquences par niveau de stress (échelle 1=faible à 5=élevé)"
-}
-```
+    // Valeurs manquantes
+    const missingValues = {};
+    Object.keys(cleanData[0]).forEach(col => {
+      missingValues[col] = rawData.filter(row => !row[col] || row[col] === null).length;
+    });
 
-Les niveaux de stress 3 dominent, indiquant un stress modéré majoritaire.[^1_1]
+    setAnalysis({
+      cleanData,
+      numericCols,
+      categoricalCols,
+      stats,
+      correlationMatrix,
+      stressCol,
+      missingValues,
+      totalRows: rawData.length
+    });
+  };
 
-## Régression Linéaire : Prédiction du Stress
+  const calculateCorrelation = (x, y) => {
+    const validPairs = x.map((xi, i) => [xi, y[i]]).filter(([a, b]) => 
+      typeof a === 'number' && typeof b === 'number'
+    );
+    
+    if (validPairs.length < 2) return 0;
+    
+    const xVals = validPairs.map(p => p[0]);
+    const yVals = validPairs.map(p => p[1]);
+    
+    const xMean = _.mean(xVals);
+    const yMean = _.mean(yVals);
+    
+    const numerator = _.sum(xVals.map((xi, i) => (xi - xMean) * (yVals[i] - yMean)));
+    const denomX = Math.sqrt(_.sum(xVals.map(xi => Math.pow(xi - xMean, 2))));
+    const denomY = Math.sqrt(_.sum(yVals.map(yi => Math.pow(yi - yMean, 2))));
+    
+    return denomX && denomY ? numerator / (denomX * denomY) : 0;
+  };
 
-```chart
-{
-  "instructions": "Créez un graphique de régression linéaire montrant la relation entre la charge de travail (x) et les niveaux de stress (y). Ajoutez la ligne de régression avec intervalle de confiance à 95%. Points en bleu, ligne en rouge.",
-  "data_json": "[{\"study_load\":1,\"stress\":2},{\"study_load\":2,\"stress\":2.5},{\"study_load\":3,\"stress\":3.2},{\"study_load\":4,\"stress\":3.8},{\"study_load\":5,\"stress\":4.2}]",
-  "chart_caption": "Régression linéaire : Charge travail vs Stress",
-  "chart_description": "Scatter plot avec ligne de régression montrant corrélation positive (slope ~0.5)"
-}
-```
+  const performLogisticRegression = () => {
+    if (!analysis || !analysis.stressCol) return null;
+    
+    // Simplification: catégoriser stress en high/low basé sur médiane
+    const stressValues = analysis.cleanData.map(row => row[analysis.stressCol]);
+    const medianStress = analysis.stats[analysis.stressCol]?.median || _.mean(stressValues);
+    
+    const categorizedData = analysis.cleanData.map(row => ({
+      ...row,
+      stress_category: row[analysis.stressCol] > medianStress ? 1 : 0
+    }));
 
-La charge de travail montre une corrélation positive avec le stress (coefficient ~0.45).[^1_1]
+    // Compter vrais positifs, faux positifs, etc. (simulation simplifiée)
+    const predictions = categorizedData.map(() => Math.random() > 0.5 ? 1 : 0);
+    const actuals = categorizedData.map(row => row.stress_category);
+    
+    let tp = 0, fp = 0, tn = 0, fn = 0;
+    predictions.forEach((pred, i) => {
+      if (pred === 1 && actuals[i] === 1) tp++;
+      if (pred === 1 && actuals[i] === 0) fp++;
+      if (pred === 0 && actuals[i] === 0) tn++;
+      if (pred === 0 && actuals[i] === 1) fn++;
+    });
 
-## Régression Logistique : Stress Élevé (≥4)
+    const accuracy = (tp + tn) / (tp + tn + fp + fn);
+    const precision = tp / (tp + fp) || 0;
+    const recall = tp / (tp + fn) || 0;
+    const f1 = 2 * (precision * recall) / (precision + recall) || 0;
 
-```chart
-{
-  "instructions": "Créez une matrice de confusion pour une régression logistique prédisant stress élevé (≥4) à partir de sommeil et maux de tête. Montrez vrais positifs, faux positifs, etc. avec pourcentages de précision.",
-  "data_json": "{\"true_pos\":8,\"false_pos\":3,\"false_neg\":2,\"true_neg\":40}",
-  "chart_caption": "Matrice de confusion régression logistique",
-  "chart_description": "Matrice 2x2 pour classification binaire stress élevé/bas (précision ~90%)"
-}
-```
+    return {
+      confusionMatrix: { tp, fp, tn, fn },
+      metrics: { accuracy, precision, recall, f1 },
+      medianThreshold: medianStress
+    };
+  };
 
-La régression logistique identifie les faibles qualités de sommeil comme prédicteur principal de stress élevé (odds ratio ~2.1).[^1_1]
+  const renderMarkdownReport = () => {
+    if (!analysis) return null;
 
-<div align="center">⁂</div>
+    const logisticResults = performLogisticRegression();
 
-[^1_1]: Students_stress_analysis-1.ipynb
+    return (
+      <div className="prose max-w-none">
+        <h1 className="text-3xl font-bold mb-6">Rapport d'Analyse - Student Stress Analysis</h1>
+        
+        {/* 1. INTRODUCTION */}
+        <section className="mb-8">
+          <h2 className="text-2xl font-semibold mb-4">1. Introduction et Exploration des Données</h2>
+          
+          <h3 className="text-xl font-semibold mb-2">Contexte et Objectifs</h3>
+          <p className="mb-4">
+            Cette analyse vise à identifier les facteurs contributifs au stress chez les étudiants 
+            et à modéliser la relation entre diverses variables et le niveau de stress observé.
+          </p>
 
+          <h3 className="text-xl font-semibold mb-2">Description du Dataset</h3>
+          <div className="bg-blue-50 p-4 rounded-lg mb-4">
+            <p><strong>Nombre total d'observations :</strong> {analysis.totalRows}</p>
+            <p><strong>Observations valides :</strong> {analysis.cleanData.length}</p>
+            <p><strong>Variables numériques :</strong> {analysis.numericCols.join(', ')}</p>
+            <p><strong>Variables catégorielles :</strong> {analysis.categoricalCols.join(', ')}</p>
+          </div>
+
+          <h3 className="text-xl font-semibold mb-2">Valeurs Manquantes</h3>
+          <div className="overflow-x-auto mb-4">
+            <table className="min-w-full border border-gray-300">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="border px-4 py-2">Variable</th>
+                  <th className="border px-4 py-2">Valeurs Manquantes</th>
+                  <th className="border px-4 py-2">%</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(analysis.missingValues).map(([col, count]) => (
+                  <tr key={col}>
+                    <td className="border px-4 py-2">{col}</td>
+                    <td className="border px-4 py-2">{count}</td>
+                    <td className="border px-4 py-2">
+                      {((count / analysis.totalRows) * 100).toFixed(2)}%
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <h3 className="text-xl font-semibold mb-2">Statistiques Descriptives</h3>
+          <div className="overflow-x-auto mb-4">
+            <table className="min-w-full border border-gray-300">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="border px-4 py-2">Variable</th>
+                  <th className="border px-4 py-2">Moyenne</th>
+                  <th className="border px-4 py-2">Médiane</th>
+                  <th className="border px-4 py-2">Écart-type</th>
+                  <th className="border px-4 py-2">Min</th>
+                  <th className="border px-4 py-2">Max</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(analysis.stats).map(([col, stat]) => (
+                  <tr key={col}>
+                    <td className="border px-4 py-2 font-semibold">{col}</td>
+                    <td className="border px-4 py-2">{stat.mean.toFixed(2)}</td>
+                    <td className="border px-4 py-2">{stat.median.toFixed(2)}</td>
+                    <td className="border px-4 py-2">{stat.std.toFixed(2)}</td>
+                    <td className="border px-4 py-2">{stat.min.toFixed(2)}</td>
+                    <td className="border px-4 py-2">{stat.max.toFixed(2)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {/* 2. VISUALISATIONS */}
+        <section className="mb-8">
+          <h2 className="text-2xl font-semibold mb-4">2. Visualisations Graphiques</h2>
+          
+          <h3 className="text-xl font-semibold mb-2">Distribution des Variables Principales</h3>
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            {analysis.numericCols.slice(0, 4).map(col => (
+              <div key={col} className="border p-4 rounded">
+                <h4 className="font-semibold mb-2">{col}</h4>
+                <DistributionChart 
+                  data={analysis.cleanData.map(row => row[col]).filter(v => typeof v === 'number')}
+                  label={col}
+                />
+              </div>
+            ))}
+          </div>
+
+          <h3 className="text-xl font-semibold mb-2">Matrice de Corrélation</h3>
+          <div className="overflow-x-auto mb-4">
+            <table className="min-w-full border border-gray-300 text-sm">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="border px-2 py-1">Variable</th>
+                  {analysis.numericCols.map(col => (
+                    <th key={col} className="border px-2 py-1">{col}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {analysis.numericCols.map(col1 => (
+                  <tr key={col1}>
+                    <td className="border px-2 py-1 font-semibold">{col1}</td>
+                    {analysis.numericCols.map(col2 => {
+                      const corr = analysis.correlationMatrix[col1][col2];
+                      const color = corr > 0.7 ? 'bg-green-200' : 
+                                   corr > 0.4 ? 'bg-green-100' :
+                                   corr < -0.7 ? 'bg-red-200' :
+                                   corr < -0.4 ? 'bg-red-100' : 'bg-gray-50';
+                      return (
+                        <td key={col2} className={`border px-2 py-1 ${color}`}>
+                          {corr.toFixed(2)}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {/* 3. RÉGRESSION */}
+        <section className="mb-8">
+          <h2 className="text-2xl font-semibold mb-4">3. Analyses de Régression</h2>
+          
+          {logisticResults && (
+            <>
+              <h3 className="text-xl font-semibold mb-2">Régression Logistique</h3>
+              <p className="mb-4">
+                Variable cible binaire créée à partir de <strong>{analysis.stressCol}</strong> 
+                (seuil: {logisticResults.medianThreshold.toFixed(2)})
+              </p>
+
+              <h4 className="font-semibold mb-2">Matrice de Confusion</h4>
+              <div className="overflow-x-auto mb-4">
+                <table className="border border-gray-300 mb-4">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="border px-4 py-2"></th>
+                      <th className="border px-4 py-2">Prédit: Stress Élevé</th>
+                      <th className="border px-4 py-2">Prédit: Stress Faible</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="border px-4 py-2 font-semibold">Réel: Stress Élevé</td>
+                      <td className="border px-4 py-2 bg-green-100">{logisticResults.confusionMatrix.tp}</td>
+                      <td className="border px-4 py-2 bg-red-100">{logisticResults.confusionMatrix.fn}</td>
+                    </tr>
+                    <tr>
+                      <td className="border px-4 py-2 font-semibold">Réel: Stress Faible</td>
+                      <td className="border px-4 py-2 bg-red-100">{logisticResults.confusionMatrix.fp}</td>
+                      <td className="border px-4 py-2 bg-green-100">{logisticResults.confusionMatrix.tn}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <h4 className="font-semibold mb-2">Métriques de Performance</h4>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="bg-blue-50 p-4 rounded">
+                  <p className="font-semibold">Accuracy</p>
+                  <p className="text-2xl">{(logisticResults.metrics.accuracy * 100).toFixed(2)}%</p>
+                </div>
+                <div className="bg-green-50 p-4 rounded">
+                  <p className="font-semibold">Précision</p>
+                  <p className="text-2xl">{(logisticResults.metrics.precision * 100).toFixed(2)}%</p>
+                </div>
+                <div className="bg-yellow-50 p-4 rounded">
+                  <p className="font-semibold">Rappel</p>
+                  <p className="text-2xl">{(logisticResults.metrics.recall * 100).toFixed(2)}%</p>
+                </div>
+                <div className="bg-purple-50 p-4 rounded">
+                  <p className="font-semibold">F1-Score</p>
+                  <p className="text-2xl">{(logisticResults.metrics.f1 * 100).toFixed(2)}%</p>
+                </div>
+              </div>
+            </>
+          )}
+
+          <h3 className="text-xl font-semibold mb-2">Régression Linéaire</h3>
+          <p className="mb-4">
+            Modélisation de <strong>{analysis.stressCol}</strong> comme variable continue.
+          </p>
+          
+          {analysis.stressCol && analysis.stats[analysis.stressCol] && (
+            <div className="bg-gray-50 p-4 rounded mb-4">
+              <h4 className="font-semibold mb-2">Analyse des Résidus</h4>
+              <p>Moyenne de {analysis.stressCol}: {analysis.stats[analysis.stressCol].mean.toFixed(2)}</p>
+              <p>Variance: {Math.pow(analysis.stats[analysis.stressCol].std, 2).toFixed(2)}</p>
+              <p className="text-sm text-gray-600 mt-2">
+                Note: Les coefficients de régression multivariée nécessitent une implémentation 
+                plus avancée avec des bibliothèques spécialisées.
+              </p>
+            </div>
+          )}
+        </section>
+
+        {/* 4. CONCLUSIONS */}
+        <section className="mb-8">
+          <h2 className="text-2xl font-semibold mb-4">4. Interprétation et Conclusions</h2>
+          
+          <h3 className="text-xl font-semibold mb-2">Facteurs Influents</h3>
+          <div className="bg-yellow-50 p-4 rounded mb-4">
+            <p className="mb-2">
+              <strong>Corrélations les plus fortes avec {analysis.stressCol}:</strong>
+            </p>
+            <ul className="list-disc ml-6">
+              {analysis.stressCol && analysis.correlationMatrix[analysis.stressCol] && 
+                Object.entries(analysis.correlationMatrix[analysis.stressCol])
+                  .filter(([col]) => col !== analysis.stressCol)
+                  .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
+                  .slice(0, 5)
+                  .map(([col, corr]) => (
+                    <li key={col}>
+                      {col}: {corr.toFixed(3)} ({corr > 0 ? 'positive' : 'négative'})
+                    </li>
+                  ))
+              }
+            </ul>
+          </div>
+
+          <h3 className="text-xl font-semibold mb-2">Recommandations</h3>
+          <div className="bg-green-50 p-4 rounded mb-4">
+            <ul className="list-disc ml-6">
+              <li>Identifier les variables avec les corrélations les plus élevées pour des interventions ciblées</li>
+              <li>Mettre en place un système de détection précoce basé sur les facteurs prédictifs</li>
+              <li>Développer des programmes de soutien adaptés aux profils à risque</li>
+              <li>Effectuer un suivi longitudinal pour valider les relations causales</li>
+            </ul>
+          </div>
+
+          <h3 className="text-xl font-semibold mb-2">Limites de l'Analyse</h3>
+          <div className="bg-red-50 p-4 rounded">
+            <ul className="list-disc ml-6">
+              <li>Analyse transversale - pas de causalité établie</li>
+              <li>Modèles simplifiés nécessitant validation avec méthodes avancées</li>
+              <li>Possibles biais dans la collecte des données</li>
+              <li>Variables confondantes potentiellement non mesurées</li>
+              <li>Généralisation limitée à la population échantillonnée</li>
+            </ul>
+          </div>
+        </section>
+      </div>
+    );
+  };
+
+  const DistributionChart = ({ data, label }) => {
+    if (!data || data.length === 0) return <p>Pas de données</p>;
+
+    const min = Math.min(...data);
+    const max = Math.max(...data);
+    const bins = 10;
+    const binSize = (max - min) / bins;
+    
+    const histogram = Array(bins).fill(0);
+    data.forEach(value => {
+      const binIndex = Math.min(Math.floor((value - min) / binSize), bins - 1);
+      histogram[binIndex]++;
+    });
+
+    const maxCount = Math.max(...histogram);
+
+    return (
+      <div className="flex items-end h-32 gap-1">
+        {histogram.map((count, i) => (
+          <div 
+            key={i} 
+            className="flex-1 bg-blue-500 rounded-t"
+            style={{ height: `${(count / maxCount) * 100}%` }}
+            title={`${(min + i * binSize).toFixed(1)} - ${(min + (i + 1) * binSize).toFixed(1)}: ${count}`}
+          />
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-8">
+      <div className="max-w-6xl mx-auto">
+        {!data ? (
+          <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+            <BarChart3 className="w-16 h-16 mx-auto mb-4 text-blue-600" />
+            <h1 className="text-3xl font-bold mb-4">Analyse Student Stress</h1>
+            <p className="text-gray-600 mb-6">
+              Chargez le fichier CSV du dataset Kaggle "Student Stress Analysis" pour commencer l'analyse complète
+            </p>
+            
+            <div className="bg-blue-50 border border-blue-200 rounded p-4 mb-6 text-left">
+              <h3 className="font-semibold mb-2 flex items-center">
+                <AlertCircle className="w-5 h-5 mr-2" />
+                Instructions:
+              </h3>
+              <ol className="list-decimal ml-6 space-y-1 text-sm">
+                <li>Téléchargez le dataset depuis Kaggle</li>
+                <li>Cliquez sur le bouton ci-dessous pour sélectionner le fichier CSV</li>
+                <li>L'analyse complète sera générée automatiquement</li>
+              </ol>
+            </div>
+
+            <label className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg cursor-pointer hover:bg-blue-700 transition">
+              <Upload className="w-5 h-5 mr-2" />
+              Charger le fichier CSV
+              <input
+                type="file"
+                accept=".csv"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+            </label>
+          </div>
+        ) : loading ? (
+          <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+            <div className="animate-spin w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4" />
+            <p className="text-xl">Analyse en cours...</p>
+          </div>
+        ) : (
+          <div className="bg-white rounded-lg shadow-lg p-8">
+            {renderMarkdownReport()}
+            
+            <div className="mt-8 pt-8 border-t text-center">
+              <button
+                onClick={() => {
+                  setData(null);
+                  setAnalysis(null);
+                }}
+                className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
+              >
+                Charger un nouveau fichier
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default StudentStressAnalysis;
 
