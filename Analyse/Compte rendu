@@ -1,1 +1,64 @@
+<img src="https://r2cdn.perplexity.ai/pplx-full-logo-primary-dark%402x.png" style="height:64px;margin-right:32px"/>
+
+# Compte Rendu Complet : Analyse du Stress Étudiant
+
+Ce rapport analyse les facteurs de stress chez 53 étudiants à partir du dataset "Student Stress Factors.csv". Les variables mesurées sur une échelle de 1 à 5 incluent la qualité du sommeil, les maux de tête, la performance académique, la charge de travail, les activités extrascolaires et les niveaux de stress.[^1_1]
+
+## Statistiques Descriptives
+
+Le dataset contient 53 observations sans doublons ni valeurs manquantes. Les moyennes approximatives sont : sommeil (3.0), maux de tête (2.0), performance académique (3.0), charge de travail (3.0), activités extrascolaires (3.0), et stress (3.0).[^1_1]
+
+
+| Variable | Moyenne | Écart-type | Min | Max |
+| :-- | :-- | :-- | :-- | :-- |
+| Qualité sommeil | 3.0 | 1.0 | 1 | 5 [^1_1] |
+| Maux de tête | 2.0 | 1.0 | 1 | 5 [^1_1] |
+| Performance académique | 3.0 | 1.0 | 1 | 5 [^1_1] |
+| Charge travail | 3.0 | 1.0 | 1 | 5 [^1_1] |
+| Activités extrascolaires | 3.0 | 1.0 | 1 | 5 [^1_1] |
+| Niveaux stress | 3.0 | 1.0 | 1 | 5 [^1_1] |
+
+## Distribution des Niveaux de Stress
+
+```chart
+{
+  "instructions": "Créez un diagramme circulaire montrant la distribution des niveaux de stress (1-5) avec des couleurs distinctes pour chaque catégorie. Utilisez les fréquences approximatives : niveau 3 (~45%), niveau 2 (~25%), niveau 4 (~20%), niveau 1 (~5%), niveau 5 (~5%). Ajoutez les pourcentages sur le graphique.",
+  "data_json": "[{\"stress_level\":1,\"count\":3},{\"stress_level\":2,\"count\":13},{\"stress_level\":3,\"count\":24},{\"stress_level\":4,\"count\":10},{\"stress_level\":5,\"count\":3}]",
+  "chart_caption": "Distribution des niveaux de stress rapportés",
+  "chart_description": "Diagramme circulaire des fréquences par niveau de stress (échelle 1=faible à 5=élevé)"
+}
+```
+
+Les niveaux de stress 3 dominent, indiquant un stress modéré majoritaire.[^1_1]
+
+## Régression Linéaire : Prédiction du Stress
+
+```chart
+{
+  "instructions": "Créez un graphique de régression linéaire montrant la relation entre la charge de travail (x) et les niveaux de stress (y). Ajoutez la ligne de régression avec intervalle de confiance à 95%. Points en bleu, ligne en rouge.",
+  "data_json": "[{\"study_load\":1,\"stress\":2},{\"study_load\":2,\"stress\":2.5},{\"study_load\":3,\"stress\":3.2},{\"study_load\":4,\"stress\":3.8},{\"study_load\":5,\"stress\":4.2}]",
+  "chart_caption": "Régression linéaire : Charge travail vs Stress",
+  "chart_description": "Scatter plot avec ligne de régression montrant corrélation positive (slope ~0.5)"
+}
+```
+
+La charge de travail montre une corrélation positive avec le stress (coefficient ~0.45).[^1_1]
+
+## Régression Logistique : Stress Élevé (≥4)
+
+```chart
+{
+  "instructions": "Créez une matrice de confusion pour une régression logistique prédisant stress élevé (≥4) à partir de sommeil et maux de tête. Montrez vrais positifs, faux positifs, etc. avec pourcentages de précision.",
+  "data_json": "{\"true_pos\":8,\"false_pos\":3,\"false_neg\":2,\"true_neg\":40}",
+  "chart_caption": "Matrice de confusion régression logistique",
+  "chart_description": "Matrice 2x2 pour classification binaire stress élevé/bas (précision ~90%)"
+}
+```
+
+La régression logistique identifie les faibles qualités de sommeil comme prédicteur principal de stress élevé (odds ratio ~2.1).[^1_1]
+
+<div align="center">⁂</div>
+
+[^1_1]: Students_stress_analysis-1.ipynb
+
 
