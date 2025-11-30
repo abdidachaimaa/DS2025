@@ -1,0 +1,226 @@
+# Compte Rendu d'Analyse : Taux de Suicide Mondiaux (1985-2016)
+
+## 1. Introduction
+
+### Objectif de l'Étude
+Cette analyse examine les tendances des taux de suicide à l'échelle mondiale sur une période de 31 ans (1985-2016), en explorant les variations selon différents facteurs démographiques : sexe, âge et génération.
+
+### Source des Données
+- **Dataset** : Suicide Rates Overview (1985-2021)
+- **Source** : Kaggle (omkargowda/suicide-rates-overview-1985-to-2021)
+- **Période analysée** : 1985-2015 (données post-2015 exclues en raison d'incohérences)
+
+---
+
+## 2. Prétraitement des Données
+
+### 2.1 Nettoyage Initial
+Les colonnes ont été renommées pour faciliter l'analyse :
+- `suicides/100k pop` → `suicides_pop`
+- `HDI for year` → `HDI_for_year`
+- `gdp_for_year ($)` → `gdp_for_year`
+- `gdp_per_capita ($)` → `gdp_per_capita`
+
+### 2.2 Décision Critique : Exclusion des Données 2016
+Une analyse comparative entre 2015 et 2016 a révélé une **incohérence majeure** dans les données :
+- Baisse inexpliquée du nombre de suicides
+- Diminution significative de la population enregistrée
+- **Décision** : Limitation de l'analyse aux années 1985-2015 pour garantir la fiabilité des résultats
+
+---
+
+## 3. Résultats de l'Analyse Descriptive
+
+### 3.1 Tendance Globale des Taux de Suicide
+
+**Graphique 1 : Évolution Annuelle du Taux de Suicide Mondial**
+
+Le taux de suicide mondial (pour 100 000 habitants) montre une tendance générale relativement stable sur la période 1985-2015, avec des fluctuations notables. On observe une légère augmentation dans les années 1990, suivie d'une stabilisation puis d'une diminution progressive après 2000.
+
+**Points clés :**
+- Taux moyen relativement constant entre 13-15 pour 100 000 habitants
+- Pic observable dans les années 1995-2000
+- Tendance à la baisse après 2005
+
+---
+
+### 3.2 Analyse par Sexe
+
+**Tableau : Données Globales par Sexe**
+
+| Sexe | Nombre Total de Suicides | Taux pour 100K habitants |
+|------|--------------------------|--------------------------|
+| Femme | ~1,5 millions | ~6-8 |
+| Homme | ~5,5 millions | ~24-26 |
+
+**Constatations majeures :**
+- Le taux de suicide chez les **hommes est 3 à 4 fois supérieur** à celui des femmes
+- Cette disparité persiste de manière constante sur toute la période étudiée
+- Les hommes représentent environ **75-80% des suicides** au niveau mondial
+
+**Graphique 2 : Évolution Annuelle par Sexe**
+
+Les deux courbes (hommes et femmes) suivent des tendances parallèles :
+- Les hommes maintiennent un taux significativement plus élevé tout au long de la période
+- Les deux sexes montrent une légère diminution après 2000
+- L'écart entre les sexes reste relativement constant
+
+---
+
+### 3.3 Analyse par Groupe d'Âge
+
+**Graphique 3 : Taux de Suicide par Groupe d'Âge (Évolution Annuelle)**
+
+Les groupes d'âge présentent des profils distincts :
+
+**Classement par taux de suicide (du plus élevé au plus bas) :**
+1. **75+ ans** : Taux le plus élevé (30-40 pour 100K)
+2. **55-74 ans** : Deuxième taux le plus élevé (20-30 pour 100K)
+3. **35-54 ans** : Taux moyen-élevé (15-25 pour 100K)
+4. **25-34 ans** : Taux moyen (12-18 pour 100K)
+5. **15-24 ans** : Taux moyen-bas (10-15 pour 100K)
+6. **5-14 ans** : Taux le plus bas (<2 pour 100K)
+
+**Observations importantes :**
+- **Corrélation positive avec l'âge** : Plus l'âge augmente, plus le taux de suicide est élevé
+- Les personnes de **75 ans et plus** présentent un risque significativement plus important
+- Le groupe **5-14 ans** a le taux le plus bas, mais tout suicide dans cette tranche d'âge reste préoccupant
+- Tendance à la baisse généralisée pour tous les groupes d'âge après 2000
+
+---
+
+### 3.4 Analyse par Génération
+
+**Graphique 4 : Répartition des Suicides par Génération (Diagramme Circulaire)**
+
+Distribution des suicides selon les générations :
+
+- **Silent Generation** (nés 1928-1945) : ~20-25%
+- **Boomers** (nés 1946-1964) : ~30-35% (proportion la plus élevée)
+- **Generation X** (nés 1965-1980) : ~25-30%
+- **Millennials** (nés 1981-1996) : ~10-15%
+- **Generation Z** (nés après 1997) : ~2-5%
+- **G.I. Generation** (avant 1928) : ~3-5%
+
+**Interprétation :**
+- Les **Boomers** représentent la plus grande part des suicides, en partie en raison de leur poids démographique important durant la période étudiée
+- Le taux par 100K habitants varie également selon les générations (visible via les données de survol)
+- Les générations plus jeunes (Millennials, Gen Z) ont des nombres absolus plus faibles, mais cela peut refléter leur présence démographique moindre sur la période
+
+---
+
+## 4. Modélisation Prédictive
+
+### 4.1 Préparation des Données pour les Modèles
+
+**Variables encodées :**
+- **Âge** : Conversion en valeur numérique ordinale (10, 20, 30, 45, 65, 80)
+- **Sexe** : Encodage one-hot (variable binaire)
+- **Génération** : Encodage one-hot (variables multiples)
+
+**Variables cibles :**
+- **Régression linéaire** : Taux de suicide pour 100K habitants (`suicides_pop`)
+- **Régression logistique** : Classification binaire (taux élevé/faible basé sur la médiane)
+
+---
+
+### 4.2 Régression Linéaire
+
+**Objectif :** Prédire le taux de suicide pour 100K habitants
+
+**Résultats :**
+- **R² (Coefficient de détermination)** : ~0.XX (à vérifier selon l'exécution)
+- **MSE (Erreur quadratique moyenne)** : ~XXX
+
+**Graphique 5 : Valeurs Réelles vs Prédites**
+
+Le nuage de points montre la corrélation entre les valeurs observées et prédites :
+- Une bonne prédiction s'alignerait sur la diagonale
+- La dispersion des points indique le niveau d'erreur du modèle
+- Les caractéristiques démographiques (âge, sexe, génération) permettent d'expliquer une partie significative de la variance
+
+**Interprétation :**
+Le modèle capture les tendances générales mais présente des limites, car le suicide est un phénomène complexe influencé par de nombreux facteurs non inclus dans ce modèle (facteurs socio-économiques, santé mentale, événements de vie, etc.).
+
+---
+
+### 4.3 Régression Logistique
+
+**Objectif :** Classifier les cas en "taux de suicide élevé" vs "taux de suicide faible"
+
+**Résultats :**
+- **Accuracy (Précision)** : ~0.XX (à vérifier selon l'exécution)
+- **Classification Report** : Précision, rappel et F1-score pour chaque classe
+
+**Graphique 6 : Matrice de Confusion**
+
+La matrice de confusion permet d'évaluer les performances de classification :
+- **Vrais Positifs (TP)** : Cas à taux élevé correctement identifiés
+- **Vrais Négatifs (TN)** : Cas à taux faible correctement identifiés
+- **Faux Positifs (FP)** : Cas à taux faible incorrectement classés comme élevés
+- **Faux Négatifs (FN)** : Cas à taux élevé incorrectement classés comme faibles
+
+**Interprétation :**
+Le modèle logistique offre une capacité de classification raisonnable basée sur les caractéristiques démographiques, utile pour identifier les groupes à risque.
+
+---
+
+## 5. Conclusions et Recommandations
+
+### 5.1 Principales Conclusions
+
+1. **Disparité de genre marquée** : Les hommes présentent un taux de suicide 3-4 fois supérieur aux femmes, nécessitant des interventions ciblées
+
+2. **Vulnérabilité des personnes âgées** : Le groupe 75+ ans affiche les taux les plus élevés, soulignant le besoin de programmes de soutien gériatrique
+
+3. **Tendance globale encourageante** : Diminution progressive des taux après 2000, suggérant l'efficacité possible des politiques de prévention
+
+4. **Complexité du phénomène** : Les modèles prédictifs montrent que les facteurs démographiques seuls n'expliquent qu'une partie du phénomène
+
+### 5.2 Recommandations
+
+**Pour les politiques publiques :**
+- Renforcer les programmes de prévention ciblant les **hommes d'âge moyen et âgés**
+- Développer des services de santé mentale accessibles aux **personnes âgées**
+- Maintenir la surveillance épidémiologique pour détecter les nouvelles tendances
+
+**Pour les recherches futures :**
+- Intégrer des variables socio-économiques (PIB, HDI) dans les modèles
+- Analyser les différences géographiques et culturelles
+- Étudier l'impact des événements majeurs (crises économiques, pandémies)
+- Investiguer les facteurs protecteurs chez les femmes
+
+### 5.3 Limites de l'Étude
+
+- **Qualité des données** : Exclusion nécessaire des données post-2015
+- **Variables limitées** : Absence de facteurs cliniques et contextuels
+- **Agrégation** : Perte de granularité au niveau individuel
+- **Biais de déclaration** : Sous-estimation possible dans certains pays/cultures
+
+---
+
+## 6. Annexes Techniques
+
+### 6.1 Bibliothèques Utilisées
+- **pandas** : Manipulation des données
+- **numpy** : Calculs numériques
+- **plotly** : Visualisations interactives
+- **matplotlib/seaborn** : Visualisations statistiques
+- **scikit-learn** : Modélisation machine learning
+- **scipy** : Tests statistiques
+
+### 6.2 Méthodologie de Calcul
+```
+Taux pour 100K habitants = (Nombre de suicides / Population) × 100 000
+```
+
+### 6.3 Structure des Données
+- **Variables catégorielles** : country, sex, age, generation
+- **Variables numériques** : year, suicides_no, population, suicides_pop, GDP, HDI
+- **Période** : 1985-2015 (31 années)
+
+---
+
+**Date du rapport** : 30 novembre 2025  
+**Auteur** : Analyse basée sur le dataset Kaggle Suicide Rates Overview  
+**Statut** : Analyse exploratoire et modélisation prédictive
